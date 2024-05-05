@@ -13,6 +13,49 @@ use core::ops::ControlFlow;
 ///
 /// [`filter`]: Iterator::filter
 /// [`Iterator`]: trait.Iterator.html
+///
+/// # Notes about side effects
+///
+/// The [`filter`] iterator implements [`DoubleEndedIterator`], meaning that you
+/// can also [`filter`] backwards:
+///
+/// ```rust
+/// let v: Vec<i32> = [1, 2, 3].into_iter().filter(|x| *x > 1).rev().collect();
+///
+/// assert_eq!(v, [3, 2]);
+/// ```
+///
+/// [`DoubleEndedIterator`]: trait.DoubleEndedIterator.html
+///
+/// But if your closure has state, iterating backwards may act in a way you do
+/// not expect. Let's go through an example. First, in the forward direction:
+///
+/// ```rust
+/// let mut c = 0;
+///
+/// for letter in ['a', 'b', 'c'].into_iter()
+///                              .filter(|_| { c += 1; c > 1 }) {
+///     println!("{letter:?}");
+/// }
+/// ```
+///
+/// This will print `'b', 'c'`.
+///
+/// Now consider this twist where we add a call to `rev`. This version will
+/// print `'b', 'a'`. Note that the letters are reversed, but the values of the
+/// counter still go in order. This is because `filter()` is still being called
+/// lazily on each item, but we are taking items from the back of the array now,
+/// instead of shifting them from the front.
+///
+/// ```rust
+/// let mut c = 0;
+///
+/// for letter in ['a', 'b', 'c'].into_iter()
+///                              .filter(|_| { c += 1; c > 1 })
+///                              .rev() {
+///     println!("{letter:?}");
+/// }
+/// ```
 #[must_use = "iterators are lazy and do nothing unless consumed"]
 #[stable(feature = "rust1", since = "1.0.0")]
 #[derive(Clone)]
